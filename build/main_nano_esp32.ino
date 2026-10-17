@@ -6,8 +6,9 @@
 // The show also switches itself off after AUTO_OFF_MS (default 2 hours).
 //
 // The Nano ESP32 has Bluetooth built in (it acts like a Nordic UART device).
-// All 19 lighting channels go through TBD62083APG driver chips, so a HIGH pin
-// switches a channel on. Pins are 3.3 V logic.
+// All 20 lighting channels go through TBD62083APG driver chips, so a HIGH pin
+// switches a channel on. Pins are 3.3 V logic. Channel 20 is the accent
+// lights (6 SMD LEDs on Nano A2 -> Driver C input 8).
 //
 // Engine PWM uses the ESP32 LEDC peripheral, documented by Espressif:
 //   - Arduino ESP32 core 2.x (Arduino's Nano ESP32 package is based on 2.x):
@@ -66,6 +67,10 @@ const uint8_t BRIDGE_PIN = D9;     // driver B, input 3
 const uint8_t HANGAR_PIN = D10;    // driver B, input 4
 const uint8_t HULL_PINS[] = {D11, D12, D13, A0, A1, A3, A4, A5, A6, A7};
 const uint8_t N_HULL = sizeof(HULL_PINS);   // works out to 10 automatically from the list above
+// Accent lights: 6 SMD LEDs on one channel (driver C, input 8). This pin is
+// dimmed with PWM like the engines, so it can fade in and out smoothly.
+const uint8_t ACCENT_PIN = A2;
+const uint8_t ACCENT_PWM_CH = 7;   // the 8th (last spare) LEDC channel, used on older core 2.x installs
 
 // ---------- ENGINE PWM (LEDC) ----------
 // PWM (pulse-width modulation) is how a digital pin - which can only be fully
@@ -95,6 +100,8 @@ const unsigned long HANGAR_ON_MS = 16500;     // when the hangar bay lights swit
 const unsigned long HULL_MIN_MS = 10000;      // hull zones light up one at a time, waiting at least this long between zones...
 const unsigned long HULL_MAX_MS = 30000;      // ...and at most this long, picked randomly each time (see loop(), below)
 const unsigned long UPDATE_MS = 20;           // how often the engine brightness is recalculated (50 times a second)
+const unsigned long ACCENT_ON_MS = 14000;     // when the accent lights start to fade up (just after the bridge)
+const unsigned long ACCENT_RAMP_MS = 4000;    // how long the accent lights take to fade up fully
 
 // ---------- ENGINE LOOK (tweak these) ----------
 // These five numbers shape how the engines behave once they are running -
@@ -105,6 +112,7 @@ const float BREATH_DEPTH = 0.15;     // how far brightness rises and falls as th
 const float BREATH_PERIOD_S = 6.0;   // how many seconds one breath (one rise-and-fall cycle) takes
 const float SHIMMER = 0.06;          // how much small, fast, random-looking flicker is layered on top
 const float GAMMA = 2.2;             // reshapes the fade curve so it looks smooth and natural to the eye, not linear
+const float ACCENT_LEVEL = 1.0;      // accent brightness once faded up (0.0-1.0) - lower it, or use bigger resistors, for a subtler glow
 
 // ---------- BLUETOOTH (Nordic UART service) ----------
 // These three UUIDs are a published standard called the "Nordic UART
@@ -136,6 +144,8 @@ State state = IDLE;
 float f1[N_CH], f2[N_CH], p1[N_CH], p2[N_CH];
 float curLevel[N_CH];    // each engine's current brightness (0.0-1.0), updated every tick
 float fadeFrom[N_CH];    // snapshot of curLevel[] taken the instant OFF is pressed, used as the starting point for the fade-out
+float accentLevel = 0;   // accent lights' current brightness (0.0-1.0)
+float accentFrom = 0;    // accent brightness at the moment OFF was pressed
 uint8_t order[sizeof(HULL_PINS)];   // a shuffled list of hull-zone indexes - see shuffleHull()
 uint8_t nextHull = 0;                // how many hull zones have been switched on so far this run
 bool bridgeOn = false, hangarOn = false;
@@ -156,6 +166,26 @@ void pwmBegin() {
     ledcAttachPin(CH_PINS[i], i);                 // ...then connect that channel to the actual engine pin
 #endif
   }
+#if PWM_CORE_V3
+  ledcAttach(ACCENT_PIN, PWM_FREQ, PWM_BITS);       // the accent channel gets PWM too
+#else
+  ledcSetup(ACCENT_PWM_CH, PWM_FREQ, PWM_BITS);
+  ledcAttachPin(ACCENT_PIN, ACCENT_PWM_CH);
+#endif
+}
+
+// Sets the accent lights' brightness from a 0.0-1.0 level, with the same
+// gamma correction as the engines so the fade looks smooth.
+void setAccent(float level) {
+  if (level < 0) level = 0;
+  if (level > 1) level = 1;
+  accentLevel = level;
+  uint32_t duty = (uint32_t)(pow(level, GAMMA) * PWM_MAX);
+#if PWM_CORE_V3
+  ledcWrite(ACCENT_PIN, duty);
+#else
+  ledcWrite(ACCENT_PWM_CH, duty);
+#endif
 }
 
 // Sets one engine's brightness. i is the engine's index into CH_PINS/CH_START_MS
@@ -228,14 +258,15 @@ float randFloat(float lo, float hi) {
   return lo + (hi - lo) * (random(0, 10000) / 10000.0);
 }
 
-// Switches every single channel off - all 7 engines and all 12 zones - and
-// resets the engines' remembered brightness to 0. Used both at power-up and
+// Switches every single channel off - all 7 engines, all 12 zones and the
+// accent lights - and resets the engines' remembered brightness to 0. Used both at power-up and
 // at the end of a fade-out.
 void allOff() {
   for (uint8_t i = 0; i < N_CH; i++) { setEngine(i, 0); curLevel[i] = 0; }
   digitalWrite(BRIDGE_PIN, LOW);
   digitalWrite(HANGAR_PIN, LOW);
   for (uint8_t i = 0; i < N_HULL; i++) digitalWrite(HULL_PINS[i], LOW);
+  setAccent(0);
 }
 
 // Fills order[] with 0, 1, 2, ... N_HULL-1 and then shuffles that list into
@@ -273,6 +304,7 @@ void stopShow() {
   for (uint8_t i = 0; i < N_HULL; i++) digitalWrite(HULL_PINS[i], LOW);
   bridgeOn = false;
   hangarOn = false;
+  accentFrom = accentLevel;                                       // the accent lights fade out with the engines
   for (uint8_t i = 0; i < N_CH; i++) fadeFrom[i] = curLevel[i];   // remember where each engine is right now...
   fadeStart = millis();                                           // ...and when the fade began...
   state = FADING;                                                 // ...so updateFade() can fade from there down to 0
@@ -320,6 +352,14 @@ void updateEngines(unsigned long now) {
     curLevel[i] = level;         // remember this, in case OFF is pressed next tick and stopShow() needs a fade-from value
     setEngine(i, (uint32_t)(pow(level, GAMMA) * PWM_MAX));   // gamma-correct, then scale 0.0-1.0 up to an actual PWM duty value
   }
+  // Accent lights: a steady glow that fades up (with the same smoothstep
+  // easing as the engines) starting at ACCENT_ON_MS. No breathing or shimmer.
+  if (now < ACCENT_ON_MS) setAccent(0);
+  else {
+    float x = (now - ACCENT_ON_MS) / (float)ACCENT_RAMP_MS;
+    if (x > 1.0) x = 1.0;
+    setAccent(ACCENT_LEVEL * x * x * (3.0 - 2.0 * x));
+  }
 }
 
 // Called roughly 50 times a second while the show is FADING (i.e. after
@@ -335,6 +375,7 @@ void updateFade(unsigned long nowAbs) {
     float level = fadeFrom[i] * (1.0 - x);
     setEngine(i, (uint32_t)(pow(level, GAMMA) * PWM_MAX));   // same gamma correction as updateEngines(), for a consistent look
   }
+  setAccent(accentFrom * (1.0 - x));
 }
 
 // Runs once, automatically, when the board is powered up or reset.
@@ -348,13 +389,12 @@ void setup() {
   allOff();
 
   // --- Seed the random number generator ---
-  // analogRead() on a pin with nothing connected to it (A2 here) picks up
-  // tiny, unpredictable electrical noise, which - combined with micros()
-  // (the number of microseconds since boot, itself effectively random
-  // because it depends on exactly when the board was powered up) - gives a
-  // different starting point for random()/randFloat() every time the board
-  // starts, so the shimmer pattern and hull order are different each run.
-  randomSeed(analogRead(A2) ^ micros());  // A2 is left unconnected
+  // esp_random() reads the ESP32's built-in hardware random number
+  // generator, which gives a different starting point for random()/randFloat()
+  // every time the board starts, so the shimmer pattern and hull order are
+  // different each run. (A2 used to be read for noise here; it now drives the
+  // accent lights.)
+  randomSeed(esp_random() ^ micros());
   for (uint8_t i = 0; i < N_CH; i++) {
     f1[i] = randFloat(0.3, 0.9);    // each engine's two shimmer frequencies (in Hz-ish units - see updateEngines())...
     f2[i] = randFloat(1.1, 2.3);

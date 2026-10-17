@@ -1,6 +1,6 @@
 // PIN TESTER - ARDUINO NANO ESP32
-// Part 1: lights EVERY one of the 19 channels in turn, in order:
-//   engines 1-7, bridge, hangar bay, hull zones 1-10.
+// Part 1: lights EVERY one of the 20 channels in turn, in order:
+//   engines 1-7, bridge, hangar bay, hull zones 1-10, accent lights.
 //   This alone confirms every wire and every LED cluster is connected correctly.
 // Part 2: additionally fades the 7 engines up and down one after another (PWM
 //   check) - engines are the only channels that use PWM, so this is an extra
@@ -26,7 +26,8 @@ const uint32_t PWM_MAX = (1UL << PWM_BITS) - 1;
 const uint8_t N_ENG = 7;
 const uint8_t ENG_PINS[N_ENG] = {D2, D3, D4, D5, D6, D7, D8};
 const uint8_t ZONE_PINS[] = {D9, D10,                                   // bridge, hangar
-                             D11, D12, D13, A0, A1, A3, A4, A5, A6, A7}; // hull 1-10
+                             D11, D12, D13, A0, A1, A3, A4, A5, A6, A7,  // hull 1-10
+                             A2};                                        // accent lights (Driver C input 8)
 const uint8_t N_ZONE = sizeof(ZONE_PINS);
 
 void setEngine(uint8_t i, uint32_t duty) {
