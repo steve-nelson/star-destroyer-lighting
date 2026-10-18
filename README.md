@@ -55,8 +55,9 @@ was already proven.
 ## Accent lights (channel 20)
 
 Six pre-wired SMD LEDs, three along each side of the hull, on one channel: Nano **A2** drives
-Driver C's spare input 8, and its output (pin 11) goes to an upright JST XH **Accent** header on
-Board 1 at R6/S6. The fine LED leads run only a few centimetres to a small stripboard junction
+Driver C's spare input 8, and its output (pin 11) goes to a right-angle JST XH **Accent** socket
+on the right-hand edge of Board 1 (X6/X7), opening facing off the board so the plug goes in from
+the side. The fine LED leads run only a few centimetres to a small stripboard junction
 board on each side (3 strips x 11 holes, one 1 k resistor per LED), and a sturdier red/black pair
 runs from each junction board back to one XH plug. The accent lights fade up to a steady glow
 14 s into the show and fade out with the engines. This channel was added after the breadboard
