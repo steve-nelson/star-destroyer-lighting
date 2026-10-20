@@ -66,8 +66,7 @@ const uint8_t CH_PINS[N_CH] = {D2, D3, D4, D5, D6, D7, D8};
 // they never dim.
 const uint8_t BRIDGE_PIN = D9;     // Board 2, driver A, input 8 -> Bridge socket
 const uint8_t HANGAR_PIN = A2;     // Board 1, driver C, input 8 -> Hangar socket (T6/T7)
-// Hull 1-10 in socket order on Board 2: Hull 1-5 left edge, Hull 6-9 right edge,
-// Hull 10 (raised upper-hull section) on the stern edge.
+// Hull 1-10 in socket order on Board 2: Hull 1-5 left edge, Hull 6-10 right edge.
 const uint8_t HULL_PINS[] = {D13, D11, A4, A7, A5, D12, A0, A3, A6, A1};
 const uint8_t N_HULL = sizeof(HULL_PINS);   // works out to 10 automatically from the list above
 // Accent lights: 6 SMD LEDs on one channel (Board 2, driver B, input 1). This

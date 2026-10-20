@@ -60,8 +60,9 @@ was already proven.
   column A toward the left side of the hull, column X toward the right and the row 1 edge toward
   the stern and the support pole:
   - left edge: Hull 1-5 (pins in column C)
-  - right edge: Hull 6-9 (pins in column V)
-  - stern edge: Hull 10 (raised upper-hull section), Bridge and Accent (row 3)
+  - right edge: Hull 6-10 (pins in column V)
+  - stern edge: Bridge and Accent (row 3). The bridge is a 4-LED cluster: two LEDs for the
+    bridge towers and two for the raised upper-hull section.
   - Driver A is fitted turned round (notch down, pin 1 at H8); the ribbon box header stands
     between the two drivers (J/K, pin 1 at J16).
 
