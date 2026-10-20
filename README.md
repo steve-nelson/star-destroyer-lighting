@@ -61,7 +61,7 @@ was already proven.
   the stern and the support pole:
   - left edge: Hull 1-5 (pins in column C)
   - right edge: Hull 6-10 (pins in column V)
-  - stern edge: Bridge and Accent (row 3). The bridge is a 4-LED cluster: two LEDs for the
+  - stern edge: Bridge (upright header, plug from above) and Accent (right-angle) on row 3. The bridge is a 4-LED cluster: two LEDs for the
     bridge towers and two for the raised upper-hull section.
   - the driver block is centred: Driver A fitted turned round (notch down, pin 1 at J7), the
     ribbon box header upright between the drivers (L/M, pin 1 at L15), Driver B notch up (O15).
