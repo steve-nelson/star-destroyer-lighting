@@ -52,15 +52,27 @@ was already proven.
 - **`main_nano_esp32.ino`** - the main sketch (Bluetooth control, all 20 channels, engine and
   accent-light PWM).
 
+## Board layout and channel plan
+
+- **Board 1** (Nano + Driver C): the 7 engine sockets along its bottom edge, plus a right-angle
+  **Hangar** socket at T6 (+5 V) / T7 (OUT) for the hangar bay (Nano A2 -> Driver C input 8).
+- **Board 2** (Drivers A and B) has its 12 sockets grouped by where the leads go. Mount it with
+  column A toward the left side of the hull, column X toward the right and the row 1 edge toward
+  the stern and the support pole:
+  - left edge: Hull 1-5 (pins in column C)
+  - right edge: Hull 6-9 (pins in column V)
+  - stern edge: Hull 10 (raised upper-hull section), Bridge and Accent (row 3)
+  - Driver A is fitted turned round (notch down, pin 1 at H8); the ribbon box header stands
+    between the two drivers (J/K, pin 1 at J16).
+
 ## Accent lights (channel 20)
 
-Six pre-wired SMD LEDs, three along each side of the hull, on one channel: Nano **A2** drives
-Driver C's spare input 8, and its output (pin 11) goes to a right-angle JST XH **Accent** socket
-on Board 1 at T6 (+5 V) / T7 (OUT), opening facing the right-hand edge. The fine LED leads run only a few centimetres to a small stripboard junction
-board on each side (3 strips x 11 holes, one 1 k resistor per LED), and a sturdier red/black pair
-runs from each junction board back to one XH plug. The accent lights fade up to a steady glow
-14 s into the show and fade out with the engines. This channel was added after the breadboard
-stage, so the soldered-board pin test (build guide Stage 5) is its first check.
+Six pre-wired SMD LEDs, three along each side of the hull, on one channel: Nano **D10** drives
+Driver B input 1 on Board 2, and its output goes to the **Accent** socket on Board 2's stern edge
+(N3/O3). The fine LED leads run only a few centimetres to a small stripboard junction board on
+each side (3 strips x 11 holes, one 1 k resistor per LED), and a sturdier red/black pair runs
+from each junction board back to one XH plug. The accent lights fade up to a steady glow 14 s
+into the show and fade out with the engines.
 
 ## Status
 

@@ -25,9 +25,9 @@ const uint32_t PWM_MAX = (1UL << PWM_BITS) - 1;
 
 const uint8_t N_ENG = 7;
 const uint8_t ENG_PINS[N_ENG] = {D2, D3, D4, D5, D6, D7, D8};
-const uint8_t ZONE_PINS[] = {D9, D10,                                   // bridge, hangar
-                             D11, D12, D13, A0, A1, A3, A4, A5, A6, A7,  // hull 1-10
-                             A2};                                        // accent lights (Driver C input 8)
+const uint8_t ZONE_PINS[] = {D9, A2,                                    // bridge (Board 2), hangar bay (Board 1)
+                             D13, D11, A4, A7, A5, D12, A0, A3, A6, A1,  // hull 1-10 in Board 2 socket order
+                             D10};                                       // accent lights (Board 2)
 const uint8_t N_ZONE = sizeof(ZONE_PINS);
 
 void setEngine(uint8_t i, uint32_t duty) {
