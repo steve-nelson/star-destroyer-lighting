@@ -9,7 +9,7 @@
 // All 20 lighting channels go through TBD62083APG driver chips, so a HIGH pin
 // switches a channel on. Pins are 3.3 V logic. The hangar bay is on Board 1
 // (Nano A2 -> Driver C input 8); the accent lights (6 SMD LEDs) are on
-// Board 2 (Nano D10 -> Driver B input 1).
+// Board 2 (Nano D9 -> Driver B input 1).
 //
 // Engine PWM uses the ESP32 LEDC peripheral, documented by Espressif:
 //   - Arduino ESP32 core 2.x (Arduino's Nano ESP32 package is based on 2.x):
@@ -64,14 +64,14 @@ const uint8_t N_CH = 7;
 const uint8_t CH_PINS[N_CH] = {D2, D3, D4, D5, D6, D7, D8};
 // Zones - these just switch fully on or fully off,
 // they never dim.
-const uint8_t BRIDGE_PIN = D9;     // Board 2, driver A, input 8 -> Bridge socket
+const uint8_t BRIDGE_PIN = D10;    // Board 2, driver A, input 8 -> Bridge header
 const uint8_t HANGAR_PIN = A2;     // Board 1, driver C, input 8 -> Hangar socket (T6/T7)
 // Hull 1-10 in socket order on Board 2: Hull 1-5 left edge, Hull 6-10 right edge.
-const uint8_t HULL_PINS[] = {D11, D13, A1, A4, A6, D12, A0, A3, A5, A7};
+const uint8_t HULL_PINS[] = {D12, A0, A3, A5, A7, D11, D13, A1, A4, A6};
 const uint8_t N_HULL = sizeof(HULL_PINS);   // works out to 10 automatically from the list above
 // Accent lights: 6 SMD LEDs on one channel (Board 2, driver B, input 1). This
 // pin is dimmed with PWM like the engines, so it can fade in and out smoothly.
-const uint8_t ACCENT_PIN = D10;
+const uint8_t ACCENT_PIN = D9;
 const uint8_t ACCENT_PWM_CH = 7;   // the 8th (last spare) LEDC channel, used on older core 2.x installs
 
 // ---------- ENGINE PWM (LEDC) ----------

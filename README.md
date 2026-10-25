@@ -64,11 +64,11 @@ was already proven.
   - stern edge: Bridge (upright header, plug from above) and Accent (right-angle) on row 3. The bridge is a 4-LED cluster: two LEDs for the
     bridge towers and two for the raised upper-hull section.
   - the driver block is centred: Driver A fitted turned round (notch down, pin 1 at J7), the
-    ribbon box header upright between the drivers (L/M, pin 1 at L15), Driver B notch up (O15).
+    ribbon box header upright between the drivers (L/M, pin 1 at M15 on the key side), Driver B notch up (O15).
 
 ## Accent lights (channel 20)
 
-Six pre-wired SMD LEDs, three along each side of the hull, on one channel: Nano **D10** drives
+Six pre-wired SMD LEDs, three along each side of the hull, on one channel: Nano **D9** drives
 Driver B input 1 on Board 2, and its output goes to the **Accent** socket on Board 2's stern edge
 (N3/O3). The fine LED leads run only a few centimetres to a small stripboard junction board on
 each side (3 strips x 11 holes, one 1 k resistor per LED), and a sturdier red/black pair runs
