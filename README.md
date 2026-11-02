@@ -76,6 +76,24 @@ each side (3 strips x 11 holes, one 1 k resistor per LED), and a sturdier red/bl
 from each junction board back to one XH plug. The accent lights fade up to a steady glow 14 s
 into the show and fade out with the engines.
 
+## Phone controls and engine presets
+
+In the Bluefruit Connect app choose **Controller > Control Pad**:
+
+| Button | Action |
+|---|---|
+| 1 | ON - starts the show |
+| 2 | OFF - engines and accent lights fade out, everything else switches off |
+| 3 (or up arrow) | next engine preset: Low -> Medium -> High -> Battle -> Low |
+| 4 (or down arrow) | previous engine preset |
+
+Presets change only the engines (brightness, breathing depth, breathing speed and shimmer) and
+blend in over about a second, even mid-show. The chosen preset is saved in the Nano's flash, so
+it is still selected after power-off. The preset name is reported on the app's UART screen.
+Edit the `PRESETS` table near the top of `main_nano_esp32.ino` to change them. See
+`build/engine_presets.pdf`; the sketch printed in the build guide's appendix predates the presets,
+so use the `.ino` file here.
+
 ## Status
 
 The circuit and sketches have been proven on a breadboard with the pin and engine test sketches.

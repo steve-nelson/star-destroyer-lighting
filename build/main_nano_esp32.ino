@@ -3,6 +3,10 @@
 // using its Control Pad screen:
 //   Button 1 = ON  (starts the light show from the beginning)
 //   Button 2 = OFF (engines fade out, everything else switches off)
+//   Button 3 (or the up arrow)   = next engine preset   (Low -> Medium -> High -> Battle -> Low)
+//   Button 4 (or the down arrow) = previous engine preset
+// The chosen preset is remembered after power-off. Presets change only the
+// engines; every other channel just switches on and off with the show.
 // The show also switches itself off after AUTO_OFF_MS (default 2 hours).
 //
 // The Nano ESP32 has Bluetooth built in (it acts like a Nordic UART device).
@@ -41,6 +45,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>       // a small "descriptor" BLE needs so the phone can subscribe to notifications
+#include <Preferences.h>   // ESP32 built-in: stores small values in flash so they survive power-off
 #if __has_include("esp_arduino_version.h")
 #include "esp_arduino_version.h"   // only exists on newer ("core 3.x") installs - used below to detect which one we have
 #endif
@@ -105,14 +110,26 @@ const unsigned long UPDATE_MS = 20;           // how often the engine brightness
 const unsigned long ACCENT_ON_MS = 14000;     // when the accent lights start to fade up (just after the bridge)
 const unsigned long ACCENT_RAMP_MS = 4000;    // how long the accent lights take to fade up fully
 
-// ---------- ENGINE LOOK (tweak these) ----------
-// These five numbers shape how the engines behave once they are running -
-// see updateEngines() further down, and the companion "Main sketch
-// explained" document, for exactly how each one is used in the maths.
-const float BASE = 0.70;             // resting brightness once spooled up (0.0-1.0)
-const float BREATH_DEPTH = 0.15;     // how far brightness rises and falls as the engines "breathe"
-const float BREATH_PERIOD_S = 6.0;   // how many seconds one breath (one rise-and-fall cycle) takes
-const float SHIMMER = 0.06;          // how much small, fast, random-looking flicker is layered on top
+// ---------- ENGINE PRESETS (tweak these) ----------
+// Each preset sets four numbers that shape how the engines look once they
+// are running - see updateEngines() further down, and the companion "Main
+// sketch explained" document, for exactly how each one is used:
+//   base    - resting brightness once spooled up (0.0-1.0)
+//   depth   - how far brightness rises and falls as the engines "breathe"
+//   period  - how many seconds one breath (one rise-and-fall cycle) takes
+//   shimmer - how much small, fast, random-looking flicker is layered on top
+// Keep base + depth + shimmer at or below 1.0, or the brightest part of each
+// breath gets clipped flat.
+struct EnginePreset { const char *name; float base, depth, period, shimmer; };
+const EnginePreset PRESETS[] = {
+  {"Low",    0.35, 0.08, 8.0, 0.03},   // subtle display look
+  {"Medium", 0.70, 0.15, 6.0, 0.06},   // the original look
+  {"High",   0.82, 0.12, 5.0, 0.06},   // bright
+  {"Battle", 0.60, 0.30, 3.0, 0.10},   // dramatic: deep, fast breathing and strong shimmer
+};
+const uint8_t N_PRESETS = sizeof(PRESETS) / sizeof(PRESETS[0]);
+const uint8_t DEFAULT_PRESET = 1;     // Medium, used until a preset has been chosen and saved
+const float PRESET_BLEND_S = 0.35;    // how quickly a new preset blends in (about 1 s to settle fully)
 const float GAMMA = 2.2;             // reshapes the fade curve so it looks smooth and natural to the eye, not linear
 const float ACCENT_LEVEL = 1.0;      // accent brightness once faded up (0.0-1.0) - lower it, or use bigger resistors, for a subtler glow
 
@@ -131,7 +148,16 @@ const float ACCENT_LEVEL = 1.0;      // accent brightness once faded up (0.0-1.0
 BLEServer *pServer = nullptr;
 volatile bool bleConnected = false;   // "volatile" because this is changed from a BLE callback, not from loop() itself
 bool wasConnected = false;
-volatile uint8_t pendingCmd = 0;   // 1 = ON, 2 = OFF (set by Bluetooth, read and cleared at the top of loop())
+volatile uint8_t pendingCmd = 0;   // 1 = ON, 2 = OFF, 3 = next preset, 4 = previous preset (set by Bluetooth, read and cleared at the top of loop())
+BLECharacteristic *txChar = nullptr;   // used to send a short text reply ("Preset: High") to the app's UART screen
+Preferences prefs;                     // flash storage for the chosen preset
+uint8_t presetIdx = DEFAULT_PRESET;    // the preset currently chosen
+// The engine look actually in use. These glide toward the chosen preset's
+// values, so changing preset blends smoothly instead of jumping.
+float curBase, curDepth, curPeriod, curShimmer;
+float breathPhase = 0;                 // position within the current breath, 0.0-1.0
+unsigned long lastEngineMs = 0;        // show time of the previous updateEngines() call
+void snapToPreset();                   // defined further down; declared here so startShow() can use it
 
 // The show is always in exactly one of these three states:
 //   IDLE    - everything off, waiting for the ON button
@@ -231,6 +257,8 @@ void feedByte(uint8_t c) {
     if ((uint8_t)~sum == buf[4] && buf[3] == '1') {   // checksum matches, AND this is a "pressed" (not "released") event
       if (buf[2] == '1') pendingCmd = 1;   // button 1 -> ON
       else if (buf[2] == '2') pendingCmd = 2;   // button 2 -> OFF
+      else if (buf[2] == '3' || buf[2] == '5') pendingCmd = 3;   // button 3 or up arrow -> next preset
+      else if (buf[2] == '4' || buf[2] == '6') pendingCmd = 4;   // button 4 or down arrow -> previous preset
       // any other button number is simply ignored
     }
   }
@@ -293,6 +321,9 @@ void startShow() {
   nextHull = 0;
   bridgeOn = false;
   hangarOn = false;
+  snapToPreset();      // start the engines on the chosen preset
+  breathPhase = 0;
+  lastEngineMs = 0;
   t0 = millis();       // "time zero" for this run - every timing check in loop() measures from here
   state = RUNNING;
 }
@@ -324,7 +355,7 @@ void stopShow() {
 //               gently into and out of the motion rather than snapping on.
 //   2. breath - a slow sine wave shared by all engines, so brightness rises
 //               and falls together like slow breathing, by up to
-//               BREATH_DEPTH each way, once every BREATH_PERIOD_S seconds.
+//               the preset's depth each way, once every preset period (seconds).
 //   3. shimmer- a faster, smaller wobble, unique to each engine (because it
 //               uses that engine's own f1/f2/p1/p2 values from setup()), so
 //               the engines flicker independently rather than in lockstep.
@@ -338,17 +369,60 @@ void stopShow() {
 // The companion "Main sketch explained" document walks through this
 // function line by line with example numbers plugged in.
 // ---------------------------------------------------------------------------
+// Sets the engine look straight to the chosen preset's values (no blending).
+void snapToPreset() {
+  const EnginePreset &p = PRESETS[presetIdx];
+  curBase = p.base; curDepth = p.depth; curPeriod = p.period; curShimmer = p.shimmer;
+}
+
+// Moves the engine look a little closer to the chosen preset. Called every
+// tick with the time step dt (seconds); each value covers about 95% of the
+// gap within 3 x PRESET_BLEND_S.
+void blendToPreset(float dt) {
+  const EnginePreset &p = PRESETS[presetIdx];
+  float k = 1.0 - exp(-dt / PRESET_BLEND_S);
+  curBase += (p.base - curBase) * k;
+  curDepth += (p.depth - curDepth) * k;
+  curPeriod += (p.period - curPeriod) * k;
+  curShimmer += (p.shimmer - curShimmer) * k;
+}
+
+// Sends a short line of text to the phone (visible on the app's UART screen).
+void notifyPhone(const char *msg) {
+  if (!bleConnected || txChar == nullptr) return;
+  txChar->setValue((uint8_t *)msg, strlen(msg));
+  txChar->notify();
+}
+
+// Chooses a preset (step = +1 for next, -1 for previous), saves it, and tells the phone.
+void changePreset(int step) {
+  presetIdx = (presetIdx + N_PRESETS + step) % N_PRESETS;
+  prefs.putUChar("preset", presetIdx);           // remembered after power-off
+  if (state == IDLE) snapToPreset();             // not running: just take the new values
+  char msg[24];
+  snprintf(msg, sizeof(msg), "Preset: %s\n", PRESETS[presetIdx].name);
+  notifyPhone(msg);
+}
+
 void updateEngines(unsigned long now) {
-  float t = now / 1000.0;   // current time in seconds since the show started, for the sine waves below
-  float breath = BREATH_DEPTH * sin(TWO_PI * t / BREATH_PERIOD_S);   // shared slow breathing wave, same for every engine
+  float t = now / 1000.0;   // current time in seconds since the show started, for the shimmer waves below
+  float dt = (now - lastEngineMs) / 1000.0;      // seconds since the previous tick
+  lastEngineMs = now;
+  blendToPreset(dt);                             // glide toward the chosen preset (no-op once it has arrived)
+  // The breath is tracked as a phase (0.0-1.0) rather than worked out from t
+  // directly, so that changing the breath speed mid-show does not make the
+  // wave jump.
+  breathPhase += dt / curPeriod;
+  breathPhase -= floor(breathPhase);
+  float breath = curDepth * sin(TWO_PI * breathPhase);   // shared slow breathing wave, same for every engine
   for (uint8_t i = 0; i < N_CH; i++) {
     if (now < CH_START_MS[i]) { setEngine(i, 0); curLevel[i] = 0; continue; }   // this engine hasn't started yet - stay off
     float x = (now - CH_START_MS[i]) / (float)RAMP_MS;   // 0.0 at this engine's start time, reaching 1.0 after RAMP_MS
     if (x > 1.0) x = 1.0;                                 // ...and staying at 1.0 (fully spooled up) after that
     float ramp = x * x * (3.0 - 2.0 * x);                 // "smoothstep" - turns the straight 0->1 ramp into an eased S-curve
-    float shimmer = SHIMMER * (0.6 * sin(TWO_PI * f1[i] * t + p1[i]) +
+    float shimmer = curShimmer * (0.6 * sin(TWO_PI * f1[i] * t + p1[i]) +
                                0.4 * sin(TWO_PI * f2[i] * t + p2[i]));   // two sine waves of different speed/phase, blended together, give an irregular-looking flicker rather than a simple pulse
-    float level = ramp * (BASE + breath + shimmer);   // combine: still spooling up? scaled down by ramp. fully up? ramp=1 and this is just the breathing+shimmer brightness
+    float level = ramp * (curBase + breath + shimmer);   // combine: still spooling up? scaled down by ramp. fully up? ramp=1 and this is just the breathing+shimmer brightness
     if (level < 0) level = 0;    // clamp - breath/shimmer could in theory push level slightly outside 0-1
     if (level > 1) level = 1;
     curLevel[i] = level;         // remember this, in case OFF is pressed next tick and stopShow() needs a fade-from value
@@ -382,6 +456,12 @@ void updateFade(unsigned long nowAbs) {
 
 // Runs once, automatically, when the board is powered up or reset.
 void setup() {
+  // --- Load the saved engine preset (Medium the very first time) ---
+  prefs.begin("sdlights", false);
+  presetIdx = prefs.getUChar("preset", DEFAULT_PRESET);
+  if (presetIdx >= N_PRESETS) presetIdx = DEFAULT_PRESET;
+  snapToPreset();
+
   // --- Set every lighting pin to OUTPUT mode and make sure everything starts off ---
   for (uint8_t i = 0; i < N_CH; i++) pinMode(CH_PINS[i], OUTPUT);
   pwmBegin();
@@ -416,7 +496,8 @@ void setup() {
   pServer->setCallbacks(new ServerCb());
   BLEService *svc = pServer->createService(SERVICE_UUID);
   BLECharacteristic *tx = svc->createCharacteristic(TX_UUID, BLECharacteristic::PROPERTY_NOTIFY);
-  tx->addDescriptor(new BLE2902());   // required so the phone can "subscribe" to TX notifications, even though we never send any
+  tx->addDescriptor(new BLE2902());   // required so the phone can "subscribe" to TX notifications
+  txChar = tx;                        // used by notifyPhone() to report the chosen preset
   BLECharacteristic *rx = svc->createCharacteristic(
       RX_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR);
   rx->setCallbacks(new RxCb());       // RxCb::onWrite() fires every time the phone sends button data
@@ -446,6 +527,8 @@ void loop() {
     pendingCmd = 0;
     if (cmd == 1 && state == IDLE) startShow();      // ON only does anything if we're currently idle
     if (cmd == 2 && state == RUNNING) stopShow();    // OFF only does anything if the show is currently running
+    if (cmd == 3) changePreset(+1);                  // presets can be changed at any time, running or not
+    if (cmd == 4) changePreset(-1);
   }
 
   // --- Keep advertising after the phone disconnects ---
