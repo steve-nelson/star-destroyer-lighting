@@ -91,8 +91,7 @@ Presets change only the engines (brightness, breathing depth, breathing speed an
 blend in over about a second, even mid-show. The chosen preset is saved in the Nano's flash, so
 it is still selected after power-off. The preset name is reported on the app's UART screen.
 Edit the `PRESETS` table near the top of `main_nano_esp32.ino` to change them. See
-`build/engine_presets.pdf`; the sketch printed in the build guide's appendix predates the presets,
-so use the `.ino` file here.
+`build/engine_presets.pdf`, Stage 7 of the build guide, and `main_sketch_explained.pdf`.
 
 ## Status
 
