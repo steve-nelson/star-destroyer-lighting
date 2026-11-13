@@ -46,6 +46,9 @@ was already proven.
   tests: drawings of both boards (component side and underside), wire tables, how each
   channel's LEDs plug in, and the accent-light junction boards. Hole names: columns A-X, rows
   1-18 from the bottom.
+- **`board_zone_map.pdf`** - one-page map of both boards showing which socket lights which part
+  of the ship (Top, Trench, Under on each side, Bridge, Accent, Main and Aux engines, Hangar).
+  Also the last page of `build_guide.pdf`.
 - **`main_sketch_explained.pdf`** - a plain-language, worked-example walkthrough of the trickier
   parts of the main sketch: the Bluetooth button protocol and its checksum, and the maths behind
   the engine spool-up, breathing, shimmer and gamma correction.
@@ -66,6 +69,24 @@ was already proven.
     bridge towers and two for the raised upper-hull section.
   - the driver block is centred: Driver A fitted turned round (notch down, pin 1 at J7), the
     ribbon box header upright between the drivers (L/M, pin 1 at M15 on the key side), Driver B notch up (O15).
+
+### Which socket lights which zone
+
+Left and right are the ship's own sides, looking from the stern towards the bow
+(see `build/board_zone_map.pdf`).
+
+| Board 2 left edge | Zone | Board 2 right edge | Zone |
+|---|---|---|---|
+| Hull 1 | Top L1 | Hull 6 | Top R1 |
+| Hull 2 | Top L2 | Hull 7 | Top R2 |
+| Hull 3 | Trench L1 | Hull 8 | Trench R1 |
+| Hull 4 | Trench L2 | Hull 9 | Trench R2 |
+| Hull 5 | Under L | Hull 10 | Under R |
+
+Board 1: Engines 1-3 are the main engines (Main 1-3, right-hand end of the engine row) and
+Engines 4-7 are the smaller engines (Aux 1-4); the Hangar socket feeds the underside hangar bay.
+The top-hull clusters (Hull 1, 2, 6, 7) have 5 LEDs each, the 5th with its own 330 ohm resistor
+like the others. The hull zones light in a random order, so the sketch is unchanged.
 
 ## Accent lights (channel 20)
 
