@@ -65,8 +65,8 @@ was already proven.
   - left edge: Hull 1-5 (pins in column C)
   - right edge: Hull 6-10 (pins in column V)
   - stern edge: Bridge (upright header, plug from above, lock ramp toward the drivers so pin 1
-    is on J3) and Accent (right-angle) on row 3. The bridge is a 4-LED cluster: two LEDs for the
-    bridge towers and two for the raised upper-hull section.
+    is on J3) and Accent (right-angle) on row 3. The bridge is a 5-LED cluster: two LEDs for the
+    bridge towers and three for the raised upper-hull section.
   - the driver block is centred: Driver A fitted turned round (notch down, pin 1 at J7), the
     ribbon box header upright between the drivers (L/M, pin 1 at M15 on the key side), Driver B notch up (O15).
 
@@ -85,8 +85,8 @@ Left and right are the ship's own sides, looking from the stern towards the bow
 
 Board 1: Engines 1-3 are the main engines (Main 1-3, right-hand end of the engine row) and
 Engines 4-7 are the smaller engines (Aux 1-4); the Hangar socket feeds the underside hangar bay.
-The top-hull clusters (Hull 1, 2, 6, 7) have 5 LEDs each, the 5th with its own 330 ohm resistor
-like the others. The hull zones light in a random order, so the sketch is unchanged.
+Every zone cluster (hull, bridge and hangar) has 5 LEDs, each with its own 330 ohm resistor:
+67 fibre LEDs in all (50 hull, 5 bridge, 5 hangar, 7 engines) plus the 6 SMD accents. The hull zones light in a random order, so the sketch is unchanged.
 
 ## Accent lights (channel 20)
 
