@@ -86,7 +86,10 @@ Left and right are the ship's own sides, looking from the stern towards the bow
 Board 1: Engines 1-3 are the main engines (Main 1-3, right-hand end of the engine row) and
 Engines 4-7 are the smaller engines (Aux 1-4); the Hangar socket feeds the underside hangar bay.
 Every zone cluster (hull, bridge and hangar) has 5 LEDs, each with its own 330 ohm resistor:
-67 fibre LEDs in all (50 hull, 5 bridge, 5 hangar, 7 engines) plus the 6 SMD accents. The hull zones light in a random order, so the sketch is unchanged.
+67 fibre LEDs in all (50 hull, 5 bridge, 5 hangar, 7 engines) plus the 6 SMD accents.
+The LEDs of a cluster are joined by a daisy chain of thin 30 AWG wire (one red wire linking the
+resistor ends, one black wire linking the short legs, tube to tube), so the tubes can sit wherever
+the fibres need them and no thick bundle of leads forms - see Stage 3 of the build guide. The hull zones light in a random order, so the sketch is unchanged.
 
 ## Accent lights (channel 20)
 

@@ -275,7 +275,7 @@ endobj
 endobj
 23 0 obj
 <<
-/Length 11198
+/Length 11250
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -619,14 +619,14 @@ BT 1 0 0 1 317.535 111.685 Tm (330 ohm) Tj T* ET
 BT 1 0 0 1 367.8149 86.1732 Tm (LED 5) Tj T* ET
 .8 .1 .1 rg
 BT /F2 6 Tf 7.2 TL ET
-BT 1 0 0 1 262.5372 235.2756 Tm (red splice) Tj T* ET
+BT 1 0 0 1 262.5372 235.2756 Tm (red chain) Tj T* ET
 0 0 0 rg
-BT 1 0 0 1 453.5433 59.52756 Tm (black splice) Tj T* ET
+BT 1 0 0 1 453.5433 59.52756 Tm (black chain) Tj T* ET
 BT /F3 6.3 Tf 7.56 TL ET
 .35 .35 .35 rg
-BT 1 0 0 1 226.7717 36.85039 Tm (Each LED gets its own resistor on its long \(+\) leg. All 5 red leads join the red wire to plug pin 1 \(+5V\);) Tj T* ET
-BT 1 0 0 1 226.7717 26.92913 Tm (all 5 black leads join the black wire to plug pin 2 \(OUT\). Solder every splice and cover it in heat-shrink.) Tj T* ET
-BT 1 0 0 1 226.7717 17.00787 Tm (The bridge and the hangar bay are the same, 5 LEDs each.) Tj T* ET
+BT 1 0 0 1 226.7717 36.85039 Tm (Each LED gets its own resistor on its long \(+\) leg. A thin red wire links the 5 resistor ends to plug pin 1 \(+5V\);) Tj T* ET
+BT 1 0 0 1 226.7717 26.92913 Tm (a thin black wire links the 5 short legs to plug pin 2 \(OUT\): a 30 AWG daisy chain from tube to tube, each joint) Tj T* ET
+BT 1 0 0 1 226.7717 17.00787 Tm (in heat-shrink \(build guide, Stage 3\). The bridge and the hangar bay are the same, 5 LEDs each.) Tj T* ET
 Q
 q
 1 0 0 1 42.51969 435.4173 cm
@@ -785,16 +785,16 @@ xref
 0000171760 00000 n 
 0000175278 00000 n 
 0000175479 00000 n 
-0000186731 00000 n 
-0000186932 00000 n 
-0000196757 00000 n 
-0000196958 00000 n 
-0000199283 00000 n 
-0000199484 00000 n 
-0000202111 00000 n 
-0000202312 00000 n 
-0000205185 00000 n 
-0000205386 00000 n 
+0000186783 00000 n 
+0000186984 00000 n 
+0000196809 00000 n 
+0000197010 00000 n 
+0000199335 00000 n 
+0000199536 00000 n 
+0000202163 00000 n 
+0000202364 00000 n 
+0000205237 00000 n 
+0000205438 00000 n 
 trailer
 <<
 /Size 34
@@ -802,5 +802,5 @@ trailer
 /Info 1 0 R
 >>
 startxref
-206741
+206793
 %%EOF
